@@ -13,7 +13,7 @@ Go to https://account.smartthings.com/tokens and register or login. If you alrea
 
 Create a new token, name it for example "Zabbix".
 
-You'll need authorization at least for:
+You'll need to select authorization at least for:
 - List all Devices   (Listar todos os dispositivos)
 - Devices details    (Ver todos os dispositivos)
 
@@ -25,8 +25,6 @@ Go to **Configurations/Hosts**, select **Zabbix server**.
 Go to the **templates tab**, and at **link new templates** search and select the Discovery template: **SmartThings - Samsung AC Discovery**
 
 Don't forget to save, click on **update**
-
-Zabbix SmartThings integration for Samsung air conditioner Wind Free models
 
 ## 4. Add the Macro Token to the host
 Access the host **Zabbix server** again, and go to **Macro tab**
@@ -40,14 +38,15 @@ Click in the **Discovery rules** at the top of screen.
 
 Check **SmartThings - Samsung AC Discovery: AC Discovery**, and click the button **Execute now**
 
-Wait a few seconds, and go to the page **Monitoring/Hosts**, to see if your the discovery found any Air Conditioner!
+Wait a few seconds, and go to the page **Monitoring/Hosts**, to see if the discovery found any Air Conditioner!
+
+### Screenshots
 
 Example of readings from **Monitoring/Overview/Data overview** page:
 
 ![Data Overview of 2 devices](screenshot-data-overview.png)
 
 ![Charts](screenshot-charts.png)
-
 
 # Important Notes
 I don't know about restrictions from the Samsung/SmartThings platform from periodically reading. The information of each ar-conditioner is collected in intervals of 10 minute. And the discovery runs in 3 hour interval.
