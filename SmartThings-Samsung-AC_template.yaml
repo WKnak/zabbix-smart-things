@@ -1,0 +1,365 @@
+zabbix_export:
+  version: '5.4'
+  date: '2022-01-23T21:40:05Z'
+  groups:
+    -
+      uuid: 896205957b8e4559a43ae151100a5b13
+      name: SmartThings
+  templates:
+    -
+      uuid: c8ded4311f354b568945d62bc6a8ae99
+      template: 'SmartThings - Samsung AC'
+      name: 'SmartThings - Samsung AC'
+      description: |
+        Main template for hosts of Samsung Air Conditioner using SmartThings API.
+        
+        More information: 
+        https://github.com/WKnak/zabbix-smart-things
+      groups:
+        -
+          name: SmartThings
+      items:
+        -
+          uuid: 44e7131889b74cffbfa3d1a396965205
+          name: 'Operation Mode'
+          type: DEPENDENT
+          key: st.samsung.ac.currentMode
+          delay: '0'
+          history: 365d
+          trends: '0'
+          value_type: CHAR
+          description: 'supportedAcModes: cool, dry, wind, auto, heat'
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.airConditionerMode.airConditionerMode.value
+          master_item:
+            key: st.samsung.ac.getStatus
+        -
+          uuid: df934ed922cf4c95b12723ea0695605b
+          name: 'Fan Mode'
+          type: DEPENDENT
+          key: st.samsung.ac.fanMode
+          delay: '0'
+          history: 365d
+          trends: '0'
+          value_type: CHAR
+          description: 'supportedAcFanModes: auto, low, medium, high, turbo'
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.airConditionerFanMode.fanMode.value
+          master_item:
+            key: st.samsung.ac.getStatus
+        -
+          uuid: 7d3985742b5c41149dd5528f553d9f28
+          name: 'Samsung AC - Get Status'
+          type: HTTP_AGENT
+          key: st.samsung.ac.getStatus
+          delay: 10m
+          history: '0'
+          trends: '0'
+          value_type: TEXT
+          description: |
+            This item collects Json with all information. After that, the dependent items parse the values they need from resulting Json.
+            
+            https://developer-https://developer-preview.smartthings.com/api/public/#operation/getDeviceStatus
+          timeout: 10s
+          url: 'https://api.smartthings.com/v1/devices/{$DEVICEID}/components/main/status'
+          headers:
+            -
+              name: Authorization
+              value: 'Bearer {$STTOKEN}'
+        -
+          uuid: 4ec3b94acce743b1844f52930ec5edc4
+          name: 'Ambient Humidity'
+          type: DEPENDENT
+          key: st.samsung.ac.humidity
+          delay: '0'
+          history: 365d
+          units: '%'
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.relativeHumidityMeasurement.humidity.value
+          master_item:
+            key: st.samsung.ac.getStatus
+        -
+          uuid: a6fa76edbf9145679a206926f832731f
+          name: 'Function Mode'
+          type: DEPENDENT
+          key: st.samsung.ac.optionalMode
+          delay: '0'
+          history: 365d
+          trends: '0'
+          value_type: CHAR
+          description: 'supportedAcOptionalMode: off, sleep, quiet, smart, speed, windFree, windFreeSleep'
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - '$[''custom.airConditionerOptionalMode''].acOptionalMode.value'
+          master_item:
+            key: st.samsung.ac.getStatus
+        -
+          uuid: f6b2fdab0e974ee5a06b555ab00bfdba
+          name: 'Power Consumption / Energy Counter'
+          type: DEPENDENT
+          key: st.samsung.ac.pc.energy
+          delay: '0'
+          history: 365d
+          trends: '0'
+          value_type: FLOAT
+          units: kWh
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.powerConsumptionReport.powerConsumption.value.energy
+            -
+              type: MULTIPLIER
+              parameters:
+                - '0.001'
+          master_item:
+            key: st.samsung.ac.getStatus
+        -
+          uuid: 499af997ad2a4ef49b1a843aef0b74a1
+          name: 'Power Consumption / Instantaneous Power'
+          type: DEPENDENT
+          key: st.samsung.ac.power.power
+          delay: '0'
+          units: W
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.powerConsumptionReport.powerConsumption.value.power
+          master_item:
+            key: st.samsung.ac.getStatus
+        -
+          uuid: ad0110b273104dd8af63be9f73174031
+          name: Settings
+          type: DEPENDENT
+          key: st.samsung.ac.settings
+          delay: '0'
+          history: 365d
+          trends: '0'
+          value_type: TEXT
+          description: 'Combined settings/modes displayed as single text'
+          preprocessing:
+            -
+              type: JAVASCRIPT
+              parameters:
+                - |
+                  // Concatenate current settings into single information
+                  // Author: William Knak - https://github.com/WKnak
+                  
+                  var j = JSON.parse(value);
+                  
+                  if(j.switch.switch.value == "off") return "Status: off";
+                  
+                  var s = "Status on - ";
+                  var acMode = j.airConditionerMode.airConditionerMode.value;
+                  s = s + "Mode " + acMode;
+                  	
+                  if(acMode != 'wind') {
+                    s = s + ' (' + j.thermostatCoolingSetpoint.coolingSetpoint.value + 'ºC)';
+                  }
+                  	
+                  var acOptionalMode = j['custom.airConditionerOptionalMode'].acOptionalMode.value;
+                  if(acOptionalMode !== 'off') {	
+                    s = s + ' - Func ' + acOptionalMode;
+                  }
+                  
+                  s = s + ' - Fan ' + j.airConditionerFanMode.fanMode.value;
+                  s = s + '/' + j.fanOscillationMode.fanOscillationMode.value;
+                  
+                  return s;
+          master_item:
+            key: st.samsung.ac.getStatus
+        -
+          uuid: da05c3c323a94ffd98b638b5e147005a
+          name: Status
+          type: DEPENDENT
+          key: st.samsung.ac.switch
+          delay: '0'
+          history: 365d
+          trends: '0'
+          value_type: CHAR
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.switch.switch.value
+          master_item:
+            key: st.samsung.ac.getStatus
+        -
+          uuid: 885c77915c0a4bc299493695fbaf9b98
+          name: 'Ambient Temperature'
+          type: DEPENDENT
+          key: st.samsung.ac.temperature
+          delay: '0'
+          history: 365d
+          value_type: FLOAT
+          units: ºC
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.temperatureMeasurement.temperature.value
+            -
+              type: JAVASCRIPT
+              parameters:
+                - |
+                  // corrigir bug do ar condicionado
+                  // que mostra 3.1ºC quando > 30.0ºC
+                  if(value < 4.0) {
+                     return value * 10.0;
+                  }
+                  return value;
+          master_item:
+            key: st.samsung.ac.getStatus
+        -
+          uuid: cb9dd991b99847c09dbecb550a050f79
+          name: 'Thermostat Setpoint'
+          type: DEPENDENT
+          key: st.samsung.ac.thermostatSetpoint
+          delay: '0'
+          history: 365d
+          trends: '0'
+          units: ºC
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.thermostatCoolingSetpoint.coolingSetpoint.value
+          master_item:
+            key: st.samsung.ac.getStatus
+    -
+      uuid: 3a4c8ff7a6244ce394225bcb19e27306
+      template: 'SmartThings - Samsung AC Discovery'
+      name: 'SmartThings - Samsung AC Discovery'
+      description: |
+        Secondary template for Samsung Air Conditioner using SmartThings API, used for discovery of new devices.
+        
+        How to use: 
+        Access the link below to check how to use this discovery template:
+        https://github.com/WKnak/zabbix-smart-things
+      groups:
+        -
+          name: SmartThings
+      discovery_rules:
+        -
+          uuid: 418899fcf496411e82c0e11045e749ef
+          name: 'AC Discovery'
+          type: HTTP_AGENT
+          key: st.samsung.ac.discovery
+          delay: 3h
+          description: 'Periodically get list of devices from SmartThings API and create new Devices with the template "SmartThings - Samsung AC".'
+          host_prototypes:
+            -
+              uuid: 3eb91338b9874379b652df0e1e92a355
+              host: 'st.ac.{#DEVICEID}'
+              name: '{#DEVICENAME}'
+              group_links:
+                -
+                  group:
+                    name: SmartThings
+              templates:
+                -
+                  name: 'SmartThings - Samsung AC'
+              macros:
+                -
+                  macro: '{$DEVICEID}'
+                  value: '{#DEVICEID}'
+          timeout: 10s
+          url: 'https://api.smartthings.com/v1/devices'
+          headers:
+            -
+              name: Authorization
+              value: 'Bearer {$STTOKEN}'
+          preprocessing:
+            -
+              type: JAVASCRIPT
+              parameters:
+                - |
+                  	// Get Devices
+                  	// https://api.smartthings.com/v1/locations
+                  	//
+                  	// Author: William Knak - https://github.com/WKnak
+                  
+                  	var deviceList = JSON.parse(value);
+                  	
+                  	var foundDevices = [];
+                  	
+                  	for(var i=0; i<deviceList.items.length; i++) {
+                  
+                  		var deviceId = deviceList.items[i].deviceId;
+                  		var deviceLabel = deviceList.items[i].label;
+                  		var deviceTypeName = deviceList.items[i].deviceTypeName;		
+                  		
+                  		if(deviceTypeName !== undefined && deviceTypeName.includes("Air Conditioner")) {		
+                  			var newDevice = {
+                  				"{#DEVICEID}": deviceId,
+                  				"{#DEVICENAME}": deviceLabel				
+                  			};
+                  			foundDevices.push(newDevice);
+                  		}		
+                  	}
+                  	
+                  	var dataOut = { "data": foundDevices };
+                  
+                  	return JSON.stringify(dataOut);
+      macros:
+        -
+          macro: '{$DEVICEID}'
+          value: '{#DEVICEID}'
+        -
+          macro: '{$STTOKEN}'
+          value: '{$STTOKEN}'
+  graphs:
+    -
+      uuid: 146c2b48fd6248e1bd15d1d84889f446
+      name: 'Measurements - Temperature and Humidity'
+      graph_items:
+        -
+          sortorder: '1'
+          drawtype: BOLD_LINE
+          color: 0040FF
+          yaxisside: RIGHT
+          calc_fnc: ALL
+          item:
+            host: 'SmartThings - Samsung AC'
+            key: st.samsung.ac.humidity
+        -
+          sortorder: '2'
+          drawtype: BOLD_LINE
+          color: FF8000
+          calc_fnc: ALL
+          item:
+            host: 'SmartThings - Samsung AC'
+            key: st.samsung.ac.temperature
+    -
+      uuid: 3e3a8e74bc304f5b9204f2e0e5afd566
+      name: 'Power Consumption'
+      graph_items:
+        -
+          sortorder: '1'
+          drawtype: BOLD_LINE
+          color: 1A7C11
+          yaxisside: RIGHT
+          calc_fnc: ALL
+          item:
+            host: 'SmartThings - Samsung AC'
+            key: st.samsung.ac.pc.energy
+        -
+          sortorder: '2'
+          drawtype: BOLD_LINE
+          color: F63100
+          calc_fnc: ALL
+          item:
+            host: 'SmartThings - Samsung AC'
+            key: st.samsung.ac.power.power
