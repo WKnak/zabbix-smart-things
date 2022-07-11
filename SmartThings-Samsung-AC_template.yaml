@@ -1,6 +1,6 @@
 zabbix_export:
   version: '5.4'
-  date: '2022-01-23T21:40:05Z'
+  date: '2022-07-11T05:03:21Z'
   groups:
     -
       uuid: 896205957b8e4559a43ae151100a5b13
@@ -11,7 +11,7 @@ zabbix_export:
       template: 'SmartThings - Samsung AC'
       name: 'SmartThings - Samsung AC'
       description: |
-        Main template for hosts of Samsung Air Conditioner using SmartThings API.
+        Main template for hosts of Air Conditioner using SmartThings API (Samsung).
         
         More information: 
         https://github.com/WKnak/zabbix-smart-things
@@ -139,6 +139,22 @@ zabbix_export:
                 - $.powerConsumptionReport.powerConsumption.value.power
           master_item:
             key: st.samsung.ac.getStatus
+          triggers:
+            -
+              uuid: e922e53c182c4826938e00735b5e3ad3
+              expression: 'min(/SmartThings - Samsung AC/st.samsung.ac.power.power,60m)>0'
+              name: 'Active for one hour (1h)'
+              priority: INFO
+            -
+              uuid: 0986f7193a8e4650bb0a26a0a6c79ee0
+              expression: 'min(/SmartThings - Samsung AC/st.samsung.ac.power.power,6h)>0'
+              name: 'Active for too many time (6h)'
+              priority: WARNING
+            -
+              uuid: cdd43f8680764bf8960c99a25d4ef591
+              expression: 'min(/SmartThings - Samsung AC/st.samsung.ac.power.power,9h)>0'
+              name: 'Active for too many time (9h)'
+              priority: AVERAGE
         -
           uuid: ad0110b273104dd8af63be9f73174031
           name: Settings
@@ -196,6 +212,12 @@ zabbix_export:
                 - $.switch.switch.value
           master_item:
             key: st.samsung.ac.getStatus
+          triggers:
+            -
+              uuid: d4f649dd68a8425b814cb24308f34d17
+              expression: 'nodata(/SmartThings - Samsung AC/st.samsung.ac.switch,3600)=1'
+              name: '1 hour without communication'
+              priority: WARNING
         -
           uuid: 885c77915c0a4bc299493695fbaf9b98
           name: 'Ambient Temperature'
@@ -222,6 +244,20 @@ zabbix_export:
                   return value;
           master_item:
             key: st.samsung.ac.getStatus
+          triggers:
+            -
+              uuid: 9afd5e1510694f718f58b5f2292590d6
+              expression: 'change(/SmartThings - Samsung AC/st.samsung.ac.temperature)<=-3'
+              name: 'Temperature decreased 3ºC'
+              priority: WARNING
+              description: 'Warning if temperature decreased 3ºC between two readings.'
+            -
+              uuid: b3a2a54d7bb24c20969d5e2d063fdf70
+              expression: 'change(/SmartThings - Samsung AC/st.samsung.ac.temperature)>=5'
+              name: 'Temperature increased 5ºC'
+              event_name: 'Temperature increased 5ºC'
+              priority: HIGH
+              description: 'High severity warning if temperature increased 5ºC between two readings.'
         -
           uuid: cb9dd991b99847c09dbecb550a050f79
           name: 'Thermostat Setpoint'
@@ -277,6 +313,10 @@ zabbix_export:
                   value: '{#DEVICEID}'
           timeout: 10s
           url: 'https://api.smartthings.com/v1/devices'
+          query_fields:
+            -
+              name: capability
+              value: airConditionerMode
           headers:
             -
               name: Authorization
@@ -301,13 +341,11 @@ zabbix_export:
                   		var deviceLabel = deviceList.items[i].label;
                   		var deviceTypeName = deviceList.items[i].deviceTypeName;		
                   		
-                  		if(deviceTypeName !== undefined && deviceTypeName.includes("Air Conditioner")) {		
-                  			var newDevice = {
-                  				"{#DEVICEID}": deviceId,
-                  				"{#DEVICENAME}": deviceLabel				
-                  			};
-                  			foundDevices.push(newDevice);
-                  		}		
+                  		var newDevice = {
+                  			"{#DEVICEID}": deviceId,
+                  			"{#DEVICENAME}": deviceLabel				
+                  		};
+                  		foundDevices.push(newDevice);				
                   	}
                   	
                   	var dataOut = { "data": foundDevices };
@@ -342,6 +380,13 @@ zabbix_export:
           item:
             host: 'SmartThings - Samsung AC'
             key: st.samsung.ac.temperature
+        -
+          sortorder: '3'
+          drawtype: DASHED_LINE
+          color: BF00FF
+          item:
+            host: 'SmartThings - Samsung AC'
+            key: st.samsung.ac.thermostatSetpoint
     -
       uuid: 3e3a8e74bc304f5b9204f2e0e5afd566
       name: 'Power Consumption'
